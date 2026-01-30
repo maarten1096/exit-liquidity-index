@@ -11,9 +11,9 @@ interface TokenAccount {
 }
 
 function getLabel(roiPercent: number): string {
-  if (roiPercent < -90) return "Not selling since 2025";
-  if (roiPercent < -70) return "HODLer";
-  if (roiPercent < -50) return "Exit Liquidity";
+  if (roiPercent < -90) return "lol what the fuck is he doing";
+  if (roiPercent < -70) return "couldve wiped your ass with that";
+  if (roiPercent < -50) return "let me guess no financial advisor?";
   return "Paper hands";
 }
 

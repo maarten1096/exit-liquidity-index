@@ -1,52 +1,67 @@
 
-# EXITLIQUIDITY - Biggest Losers Leaderboard
+# EXITLIQUIDITY - Leaderboard Only (Fast Build)
 
-A dark minimalist website for a Solana meme coin that ranks wallet holders by their losses, embracing the "exit liquidity" narrative with weaponized sarcasm.
+## Overview
+Single-page leaderboard showing the top 25 biggest losers ranked by negative ROI. Dark minimalist design, real Solana blockchain data.
 
-## Pages
+## What You Need to Provide
+1. **Helius API Key** - For Solana RPC access to fetch token holders and transaction data
+2. **Token Mint Address** - Your Solana token's contract address
 
-### Landing Page
-- Hero section with the tagline "Be early. Or be exit liquidity."
-- Sad Wojak mascot with sunglasses illustration
-- "Accept Fate" button linking to the DEX/swap
-- Brief explanation of what the token is about
-- Scroll down to the leaderboard section
+## Database Schema (SQL File)
+I will create a `database-schema.sql` file you can run manually in Supabase:
 
-### Who's Exit Liquidity Leaderboard
-- Clean dark table showing top 25 biggest losers
-- Columns: Rank, Wallet (truncated address), Holdings, ROI %, Label
-- Labels based on loss severity:
-  - ROI below -90%: "Not selling since 2025"
-  - ROI below -70%: "HODLer"  
-  - ROI below -50%: "Exit Liquidity"
-- Subtle red accent colors for negative percentages
-- Auto-refresh indicator showing last update time
+```text
+Tables:
+- token_holders: wallet_address, balance, avg_entry_price, current_value, roi_percent, label, last_updated
+- token_price: price, timestamp
+- app_config: key-value store for token mint address
 
-## Backend Architecture
+RLS Policies:
+- Public SELECT on all tables
+- Service role only for INSERT/UPDATE/DELETE
+```
 
-### Supabase Database
-- `token_holders` table: wallet_address, balance, avg_entry_price, current_value, roi_percent, last_updated
-- `wallet_buys` table: wallet_address, amount, price_at_buy, tx_signature, timestamp
-- `token_price` table: price, timestamp
-- RLS policies: public read access, service role write only
+## Frontend Components
+1. **Leaderboard Page** (`/`)
+   - Dark background (#0a0a0a)
+   - Table with columns: Rank, Wallet, Holdings, ROI%, Label
+   - Labels: "Not selling since 2025" (<-90%), "HODLer" (<-70%), "Exit Liquidity" (<-50%)
+   - Auto-refresh every 60 seconds
+   - Last updated timestamp
 
-### Supabase Edge Function (Cron Job)
-- Runs every 10 minutes via pg_cron
-- Fetches all token holders from Solana RPC (using Helius or similar)
-- Parses swap transactions to calculate weighted average entry price
-- Fetches current token price from Jupiter/Raydium
-- Calculates ROI for each holder
-- Updates Supabase database
+## Backend (Edge Function)
+1. **index-holders** - Cron job that:
+   - Fetches all token holders from Helius API
+   - Gets current token price from Jupiter
+   - Calculates ROI for each holder
+   - Updates database
 
-## Design System
-- Background: Near-black (#0a0a0a)
-- Card backgrounds: Dark gray (#111111)
-- Text: White and muted gray
-- Accent: Deep red (#dc2626) for losses
-- Font: Clean sans-serif (Inter or similar)
-- Subtle glow effects on key elements
+## File Structure
+```text
+database-schema.sql          <- Run this in Supabase SQL editor
+src/
+  pages/Index.tsx            <- Leaderboard UI
+  components/Leaderboard.tsx <- Table component
+  hooks/useHolders.ts        <- Data fetching hook
+  lib/utils.ts               <- Helper functions
+supabase/functions/
+  index-holders/index.ts     <- Blockchain indexer
+```
 
-## Technical Notes
-- You'll need to provide a Helius API key (or similar Solana RPC provider) for blockchain data
-- Token contract address required for deployment
-- SQL migration files will be provided separately as requested
+## Technical Details
+
+### ROI Calculation
+- Fetch holder balances from Helius `getTokenAccounts`
+- Get historical swaps to estimate entry price
+- Current price from Jupiter API
+- ROI = ((current_value - entry_value) / entry_value) * 100
+
+### Labels
+- ROI < -90%: "Not selling since 2025"
+- ROI < -70%: "HODLer"
+- ROI < -50%: "Exit Liquidity"
+- ROI >= -50%: "Paper hands"
+
+### Cron Schedule
+Edge function runs every 10 minutes via pg_cron (SQL provided in schema file)
